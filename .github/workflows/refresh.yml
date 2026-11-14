@@ -1,13 +1,25 @@
 name: Refresh listings
 
 on:
-  workflow_dispatch:        # manual "Run workflow" button (testing)
+  schedule:
+    - cron: "0 8 * * *"     # 08:00 UTC = 12:00 Dubai, every day (GitHub may start it a little late)
+  workflow_dispatch:        # "Run workflow" button for a manual update
+  push:                     # redeploy the site when the dashboard code changes (no scraping)
+    branches: [main]
+    paths: [dashboard.html, .github/workflows/refresh.yml]
 
 permissions:
-  contents: write           # to commit the refreshed data back
+  contents: write           # commit refreshed data back
+  pages: write              # publish the site
+  id-token: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
 
 jobs:
   refresh:
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -26,3 +38,26 @@ jobs:
           git add listings.json commute_cache.json
           git diff --cached --quiet || git commit -m "Refresh listings"
           git push
+
+  deploy:
+    needs: refresh
+    if: always() && (needs.refresh.result == 'success' || needs.refresh.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main           # include the data commit made by the refresh job
+      - name: Build site
+        run: |
+          mkdir _site
+          cp dashboard.html _site/index.html
+          cp listings.json _site/listings.json
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: pages
+        uses: actions/deploy-pages@v4

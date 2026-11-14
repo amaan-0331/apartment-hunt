@@ -455,14 +455,37 @@ function card(g) {
   </article>`;
 }
 
+// Two ways to run: the local server (python3 app.py, has /api and the Fetch button)
+// or the static copy on GitHub Pages (reads listings.json, updated daily by GitHub Actions).
+let STATIC = false;
+const RUN_URL = "https://github.com/amaan-0331/apartment-hunt/actions/workflows/refresh.yml";
+async function getListings() {
+  try { const r = await fetch("/api/listings"); if (r.ok) return await r.json(); } catch (e) {}
+  STATIC = true;
+  return (await fetch("listings.json", { cache: "no-store" })).json();
+}
+function ago(iso) {
+  const mins = Math.round((Date.now() - Date.parse(iso + ":00+04:00")) / 60000);
+  if (mins < 60) return `${Math.max(mins, 0)} min ago`;
+  if (mins < 48 * 60) return `${Math.round(mins / 60)} h ago`;
+  return `${Math.round(mins / 1440)} days ago`;
+}
 async function load() {
-  const d = await (await fetch("/api/listings")).json();
+  const d = await getListings();
   data = d.listings;
-  $("updated").textContent = "Property Finder · updated " + d.updated.replace("T", " ");
+  $("updated").textContent = `Property Finder · updated ${d.updated.replace("T", " ")} (${ago(d.updated)})`;
+  if (STATIC) {
+    const a = document.createElement("a");
+    a.className = "fetch"; a.href = RUN_URL; a.target = "_blank"; a.rel = "noopener";
+    a.textContent = "Update now on GitHub ↗"; a.style.textDecoration = "none";
+    $("refresh").replaceWith(a);
+  }
   render();
 }
 async function poll() {
-  const s = await (await fetch("/api/status")).json();
+  if (STATIC) return;
+  let s;
+  try { s = await (await fetch("/api/status")).json(); } catch (e) { return; }
   $("log").textContent = s.running ? s.log.slice(-2).join("\n") : "";
   $("refresh").disabled = s.running;
   $("refresh").textContent = s.running ? "Fetching… about 4 min" : "Fetch new listings";
@@ -480,7 +503,7 @@ $("areasBtn").onclick = () => togglePanel($("areaPanel").hidden);
 $("areaDone").onclick = () => togglePanel(false);
 $("areaClear").onclick = () => { F.areas = []; render(); };
 $("areaSearch").oninput = () => render();
-load(); poll();
+load().then(poll);
 </script>
 </body>
 </html>

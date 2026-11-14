@@ -246,7 +246,8 @@ def build(refresh=False, log=print):
     if calls:
         log(f"Google calls this run: {calls} (cap {GOOGLE_MAX_CALLS})")
 
-    out = {"updated": datetime.datetime.now().isoformat(timespec="minutes"), "listings": rows}
+    dubai_now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=4)))
+    out = {"updated": dubai_now.strftime("%Y-%m-%dT%H:%M"), "listings": rows}   # Dubai time, also on GitHub's servers
     json.dump(out, open(path("listings.json"), "w"))
     log(f"Done: {len(rows)} listings")
     return out
