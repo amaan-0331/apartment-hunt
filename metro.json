@@ -1,0 +1,403 @@
+{
+"Red1": [
+{
+"name": "Centrepoint",
+"lat": 25.23034,
+"lon": 55.39098
+},
+{
+"name": "Emirates",
+"lat": 25.24107,
+"lon": 55.36568
+},
+{
+"name": "Airport Terminal 3",
+"lat": 25.24524,
+"lon": 55.35915
+},
+{
+"name": "Airport Terminal 1",
+"lat": 25.2485,
+"lon": 55.35235
+},
+{
+"name": "Al Garhoud",
+"lat": 25.24949,
+"lon": 55.33997
+},
+{
+"name": "Deira City Centre",
+"lat": 25.25468,
+"lon": 55.33028
+},
+{
+"name": "Al Rigga",
+"lat": 25.26336,
+"lon": 55.32389
+},
+{
+"name": "Union",
+"lat": 25.26615,
+"lon": 55.31376
+},
+{
+"name": "BurJuman",
+"lat": 25.25442,
+"lon": 55.30406
+},
+{
+"name": "ADCB",
+"lat": 25.24461,
+"lon": 55.29823
+},
+{
+"name": "max",
+"lat": 25.23336,
+"lon": 55.29204
+},
+{
+"name": "World Trade Centre",
+"lat": 25.22487,
+"lon": 55.28505
+},
+{
+"name": "Emirates Towers",
+"lat": 25.21686,
+"lon": 55.2796
+},
+{
+"name": "Financial Center",
+"lat": 25.21092,
+"lon": 55.27548
+},
+{
+"name": "Burj Khalifa / Dubai Mall",
+"lat": 25.20144,
+"lon": 55.26958
+},
+{
+"name": "Business Bay",
+"lat": 25.19099,
+"lon": 55.26009
+},
+{
+"name": "Garmin",
+"lat": 25.15565,
+"lon": 55.2285
+},
+{
+"name": "Equiti",
+"lat": 25.12669,
+"lon": 55.20792
+},
+{
+"name": "Mall of the Emirates",
+"lat": 25.12123,
+"lon": 55.20043
+},
+{
+"name": "InsuranceMarket",
+"lat": 25.11479,
+"lon": 55.19088
+},
+{
+"name": "Dubai Internet City",
+"lat": 25.10221,
+"lon": 55.17387
+},
+{
+"name": "Al Fardan Exchange",
+"lat": 25.08896,
+"lon": 55.15814
+},
+{
+"name": "Sobha Realty",
+"lat": 25.07996,
+"lon": 55.14759
+},
+{
+"name": "DMCC",
+"lat": 25.07089,
+"lon": 55.13869
+},
+{
+"name": "National Paints",
+"lat": 25.05785,
+"lon": 55.12742
+},
+{
+"name": "The Gardens",
+"lat": 25.04349,
+"lon": 55.13501
+},
+{
+"name": "Discovery Gardens",
+"lat": 25.03524,
+"lon": 55.1454
+},
+{
+"name": "Al Furjan",
+"lat": 25.03046,
+"lon": 55.15222
+},
+{
+"name": "Dubai Investment Park",
+"lat": 25.00512,
+"lon": 55.15559
+},
+{
+"name": "Expo City Dubai",
+"lat": 24.96359,
+"lon": 55.14595
+}
+],
+"Red2": [
+{
+"name": "Centrepoint",
+"lat": 25.23034,
+"lon": 55.39098
+},
+{
+"name": "Emirates",
+"lat": 25.24107,
+"lon": 55.36568
+},
+{
+"name": "Airport Terminal 3",
+"lat": 25.24524,
+"lon": 55.35915
+},
+{
+"name": "Airport Terminal 1",
+"lat": 25.2485,
+"lon": 55.35235
+},
+{
+"name": "Al Garhoud",
+"lat": 25.24949,
+"lon": 55.33997
+},
+{
+"name": "Deira City Centre",
+"lat": 25.25468,
+"lon": 55.33028
+},
+{
+"name": "Al Rigga",
+"lat": 25.26336,
+"lon": 55.32389
+},
+{
+"name": "Union",
+"lat": 25.26615,
+"lon": 55.31376
+},
+{
+"name": "BurJuman",
+"lat": 25.25442,
+"lon": 55.30406
+},
+{
+"name": "ADCB",
+"lat": 25.24461,
+"lon": 55.29823
+},
+{
+"name": "max",
+"lat": 25.23336,
+"lon": 55.29204
+},
+{
+"name": "World Trade Centre",
+"lat": 25.22487,
+"lon": 55.28505
+},
+{
+"name": "Emirates Towers",
+"lat": 25.21686,
+"lon": 55.2796
+},
+{
+"name": "Financial Center",
+"lat": 25.21092,
+"lon": 55.27548
+},
+{
+"name": "Burj Khalifa / Dubai Mall",
+"lat": 25.20144,
+"lon": 55.26958
+},
+{
+"name": "Business Bay",
+"lat": 25.19099,
+"lon": 55.26009
+},
+{
+"name": "Garmin",
+"lat": 25.15565,
+"lon": 55.2285
+},
+{
+"name": "Equiti",
+"lat": 25.12669,
+"lon": 55.20792
+},
+{
+"name": "Mall of the Emirates",
+"lat": 25.12123,
+"lon": 55.20043
+},
+{
+"name": "InsuranceMarket",
+"lat": 25.11479,
+"lon": 55.19088
+},
+{
+"name": "Dubai Internet City",
+"lat": 25.10221,
+"lon": 55.17387
+},
+{
+"name": "Al Fardan Exchange",
+"lat": 25.08896,
+"lon": 55.15814
+},
+{
+"name": "Sobha Realty",
+"lat": 25.07996,
+"lon": 55.14759
+},
+{
+"name": "DMCC",
+"lat": 25.07089,
+"lon": 55.13869
+},
+{
+"name": "National Paints",
+"lat": 25.05799,
+"lon": 55.1272
+},
+{
+"name": "Ibn Battuta",
+"lat": 25.04667,
+"lon": 55.11749
+},
+{
+"name": "Energy",
+"lat": 25.02632,
+"lon": 55.10129
+},
+{
+"name": "Danube",
+"lat": 25.00129,
+"lon": 55.09567
+},
+{
+"name": "Life Pharmacy",
+"lat": 24.9773,
+"lon": 55.09093
+}
+],
+"Green": [
+{
+"name": "e&",
+"lat": 25.25477,
+"lon": 55.40133
+},
+{
+"name": "Al Qusais",
+"lat": 25.26276,
+"lon": 55.38728
+},
+{
+"name": "Dubai Airport Free Zone",
+"lat": 25.26984,
+"lon": 55.37517
+},
+{
+"name": "Al Nahda",
+"lat": 25.27322,
+"lon": 55.36949
+},
+{
+"name": "Stadium",
+"lat": 25.27794,
+"lon": 55.36148
+},
+{
+"name": "Al Qiyadah",
+"lat": 25.27759,
+"lon": 55.3526
+},
+{
+"name": "Abu Hail",
+"lat": 25.27543,
+"lon": 55.34643
+},
+{
+"name": "Abu Baker Al Siddique",
+"lat": 25.2709,
+"lon": 55.33275
+},
+{
+"name": "Salah Al Din",
+"lat": 25.27032,
+"lon": 55.32083
+},
+{
+"name": "Union",
+"lat": 25.26626,
+"lon": 55.31373
+},
+{
+"name": "Baniyas Square",
+"lat": 25.26918,
+"lon": 55.30766
+},
+{
+"name": "Gold Souq",
+"lat": 25.27618,
+"lon": 55.30165
+},
+{
+"name": "Al Ras",
+"lat": 25.26879,
+"lon": 55.29361
+},
+{
+"name": "Al Ghubaiba",
+"lat": 25.26504,
+"lon": 55.28893
+},
+{
+"name": "Sharaf DG",
+"lat": 25.25821,
+"lon": 55.29748
+},
+{
+"name": "BurJuman",
+"lat": 25.25498,
+"lon": 55.30394
+},
+{
+"name": "Oud Metha",
+"lat": 25.24393,
+"lon": 55.31588
+},
+{
+"name": "Dubai Healthcare City",
+"lat": 25.23094,
+"lon": 55.32262
+},
+{
+"name": "Al Jadaf",
+"lat": 25.22488,
+"lon": 55.3337
+},
+{
+"name": "Creek",
+"lat": 25.21884,
+"lon": 55.33905
+}
+]
+}

@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flat Hunt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;500;600;700;800&family=Overpass+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ground: #e9edf1;       /* platform concrete */
+  --card: #ffffff;
+  --ink: #13202c;          /* signage navy */
+  --muted: #5e6b78;
+  --hair: #d3dae1;
+  --red: #d32630;          /* Red Line */
+  --green: #17924a;        /* Green Line */
+  --bus: #e3a21a;
+  --walk: #8d99a6;
+  --slow: #b4561f;
+  --chip: #eef1f4;
+  --shadow: 0 1px 2px rgba(19,32,44,.06), 0 6px 20px -12px rgba(19,32,44,.25);
+  --mono: "Overpass Mono", ui-monospace, Menlo, monospace;
+  --sans: "Overpass", -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0e151c; --card: #16202a; --ink: #e5ebf0; --muted: #8b98a5; --hair: #26323e;
+    --red: #ec4a52; --green: #34b768; --bus: #f0b43a; --walk: #6f7d8a; --slow: #e8834a; --chip: #1d2833;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -14px rgba(0,0,0,.7);
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.45 var(--sans); }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+
+/* ---- top bar ---- */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0 6px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; font-size: 13px; }
+.brand .roundel { width: 22px; height: 22px; border-radius: 50%; border: 5px solid var(--red); background: var(--card); }
+.updated { color: var(--muted); font-size: 12.5px; }
+.fetch { border: 1.5px solid var(--ink); background: transparent; border-radius: 999px; padding: 7px 14px 5px; font-weight: 700;
+  font-size: 13px; cursor: pointer; white-space: nowrap; }
+.fetch:hover { background: var(--ink); color: var(--ground); }
+.fetch:disabled { opacity: .55; cursor: progress; background: transparent; color: var(--ink); }
+
+/* ---- headline + commute line (the signature) ---- */
+.hero { padding: 18px 0 8px; }
+.headline { font-size: clamp(26px, 4.4vw, 44px); line-height: 1.05; font-weight: 800; letter-spacing: -.02em; margin: 0; max-width: 18ch; }
+.headline em { font-style: normal; color: var(--red); }
+.headline .n { font-family: var(--mono); font-weight: 600; letter-spacing: -.04em; }
+.subline { color: var(--muted); margin: 8px 0 0; font-size: 14px; }
+
+.cline { position: relative; margin: 26px 0 6px; height: 92px; }
+.cline .track { position: absolute; left: 0; right: 0; top: 58px; height: 6px; border-radius: 3px; background: var(--hair); }
+.cline .lit { position: absolute; left: 0; top: 58px; height: 6px; border-radius: 3px; background: var(--ink); }
+.cline .dots { position: absolute; inset: 0 0 34px 0; }
+.cline .dot { position: absolute; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: var(--ink); }
+.cline .dot.shj { background: transparent; box-shadow: inset 0 0 0 1.6px var(--ink); }
+.cline .dot.off { opacity: .22; }
+.cline .tick { position: absolute; top: 54px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%;
+  background: var(--card); border: 2.5px solid var(--hair); }
+.cline .tick.on { border-color: var(--ink); }
+.cline .tlabel { position: absolute; top: 72px; transform: translateX(-50%); font: 500 11.5px var(--mono); color: var(--muted); }
+.cline .cut { position: absolute; top: 0; bottom: 22px; width: 0; border-left: 2px solid var(--red); pointer-events: none; }
+.cline .cut span { position: absolute; top: -4px; left: 6px; font: 600 12px var(--mono); color: var(--red); white-space: nowrap; }
+.cline .cut.flip span { left: auto; right: 6px; }
+.cline input { position: absolute; inset: 0 0 18px 0; width: 100%; height: auto; margin: 0; opacity: 0; cursor: ew-resize; }
+.cline-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.cline-legend .hint { margin-left: auto; }
+@media (max-width: 640px) { .cline-legend .hint { margin-left: 0; flex-basis: 100%; } }
+.cline-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); margin-right: 6px; vertical-align: 0; }
+.cline-legend i.shj { background: transparent; box-shadow: inset 0 0 0 1.6px var(--ink); }
+
+/* ---- controls ---- */
+.controls { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; padding: 14px 0 18px;
+  border-bottom: 1px solid var(--hair); }
+.seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 6px 13px 4px; cursor: pointer; font-weight: 600; font-size: 13px; }
+.seg button + button { border-left: 1.5px solid var(--ink); }
+.seg button.on { background: var(--ink); color: var(--ground); }
+.ctl { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.ctl b { color: var(--ink); font: 600 13px var(--mono); min-width: 54px; }
+input[type=range].rail { -webkit-appearance: none; appearance: none; width: 120px; height: 18px; background: transparent; }
+input[type=range].rail::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--hair); }
+input[type=range].rail::-moz-range-track { height: 4px; border-radius: 2px; background: var(--hair); }
+input[type=range].rail::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%;
+  background: var(--card); border: 3px solid var(--ink); }
+input[type=range].rail::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--card); border: 3px solid var(--ink); }
+select { border: 1.5px solid var(--hair); background: var(--card); border-radius: 8px; padding: 6px 8px 4px; font-size: 13px; }
+.toggle { display: flex; gap: 7px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+.toggle input { accent-color: var(--ink); }
+.areas-btn { border: 1.5px solid var(--ink); background: transparent; border-radius: 999px; padding: 6px 13px 4px;
+  font-weight: 600; font-size: 13px; cursor: pointer; }
+.areas-btn.active { background: var(--ink); color: var(--ground); }
+.area-panel { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); margin: 12px 0 0; padding: 12px; }
+.area-head { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+.area-head input { flex: 1; min-width: 0; border: 1.5px solid var(--hair); background: var(--ground); border-radius: 8px; padding: 7px 10px 5px; font-size: 14px; }
+.linkish { border: 0; background: none; font-weight: 700; font-size: 13px; cursor: pointer; padding: 6px 4px; }
+.area-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 2px 18px; max-height: 320px; overflow: auto; }
+.area-list h4 { grid-column: 1 / -1; margin: 8px 0 2px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.area-opt { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.area-opt:hover { background: var(--chip); }
+.area-opt input { accent-color: var(--ink); }
+.area-opt .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.area-opt .st { font: 500 12px var(--mono); color: var(--muted); white-space: nowrap; }
+.area-opt.none { opacity: .45; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 12px; }
+.chips:empty { display: none; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--ink); color: var(--ground); border: 0; border-radius: 999px;
+  padding: 5px 6px 3px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.chip span { width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center; background: rgba(255,255,255,.18); font-size: 12px; line-height: 1; }
+.section-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 12px; }
+.section-head h2 { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.section-head span { color: var(--muted); font-size: 13px; }
+.section-head::after { content: ""; flex: 1; height: 1.5px; background: var(--hair); align-self: center; }
+.grid + .section-head { margin-top: 34px; }
+#log { font: 12px var(--mono); color: var(--muted); white-space: pre-wrap; padding-top: 6px; }
+#log:empty { display: none; }
+
+/* ---- cards ---- */
+main { padding: 22px 0 60px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 18px; }
+.card { background: var(--card); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.photo { aspect-ratio: 16/10; background: var(--chip) center/cover no-repeat; position: relative; }
+.photo .ads { position: absolute; right: 10px; bottom: 10px; background: var(--card); color: var(--ink); border-radius: 999px;
+  font: 600 12px var(--mono); padding: 3px 9px 1px; box-shadow: var(--shadow); }
+.photo .city { position: absolute; left: 10px; top: 10px; background: rgba(19,32,44,.78); color: #fff; border-radius: 4px;
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 7px 1px; }
+.body { padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.name { font-size: 18px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; }
+.name small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-top: 2px; }
+.money { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.rent { font: 600 22px var(--mono); letter-spacing: -.03em; }
+.rent .from { font: 500 12px var(--sans); color: var(--muted); letter-spacing: 0; margin-right: 4px; }
+.allin { font-size: 12.5px; color: var(--muted); text-align: right; }
+.allin b { font: 600 13px var(--mono); color: var(--ink); }
+
+/* route diagram */
+.route { border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); padding: 12px 0 8px; }
+.route-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.mins { font: 600 26px var(--mono); letter-spacing: -.04em; line-height: 1; }
+.mins small { font: 500 12px var(--sans); letter-spacing: 0; color: var(--muted); margin-left: 3px; }
+.mins.slow { color: var(--slow); }
+.walkline { font-size: 12px; color: var(--muted); text-align: right; }
+.walkline b { font: 600 12.5px var(--mono); color: var(--ink); }
+.diagram { display: flex; align-items: center; height: 14px; }
+.stop { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--card); border: 2.5px solid var(--ink); position: relative; z-index: 1; }
+.stop.home { background: var(--ink); }
+.stop.dic { width: 14px; height: 14px; border: 3.5px solid var(--red); }
+.seg-l { flex: 1; height: 5px; margin: 0 -1px; position: relative; }
+.seg-l.walk { height: 0; border-top: 3px dotted var(--walk); flex: .6; }
+.seg-l.bus { background: var(--bus); flex: 1.2; border-radius: 1px; }
+.seg-l.red { background: var(--red); flex: 2; }
+.seg-l.green { background: var(--green); flex: 2; }
+.seg-l.metro { background: var(--ink); flex: 2; }
+.seg-l.tram { background: #7a5cc4; flex: 1.2; }
+.labels { display: flex; margin-top: 5px; font: 500 10.5px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.labels span { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 2px; }
+.labels span.walk { flex: .6; } .labels span.bus, .labels span.tram { flex: 1.2; } .labels span.red, .labels span.green, .labels span.metro { flex: 2; }
+.labels .edge { flex: none; width: 12px; }
+.labels .end { flex: none; width: 26px; text-align: right; color: var(--red); font-weight: 600; margin-right: -12px; }
+.approx { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { border-radius: 4px; padding: 3px 7px 1px; font-size: 12px; background: var(--chip); color: var(--muted); }
+.tag.good { color: var(--green); box-shadow: inset 0 0 0 1px currentColor; background: transparent; }
+.tag.warn { color: var(--slow); box-shadow: inset 0 0 0 1px currentColor; background: transparent; }
+
+details.list, .list.single { margin-top: auto; }
+.list.single .ad { padding-bottom: 2px; }
+details.list summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+  font-weight: 700; font-size: 13px; padding: 4px 0; }
+details.list summary::-webkit-details-marker { display: none; }
+details.list summary .chev { transition: transform .15s; font-size: 11px; }
+details.list[open] summary .chev { transform: rotate(180deg); }
+.ad { display: grid; grid-template-columns: 1fr auto; gap: 1px 10px; padding: 9px 0; border-top: 1px solid var(--hair);
+  text-decoration: none; color: inherit; }
+.ad:hover .go { text-decoration: underline; }
+.ad .r { font: 600 14px var(--mono); }
+.ad .r span { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.ad .meta { font-size: 12px; color: var(--muted); }
+.ad .meta .st { color: var(--slow); font-weight: 700; }
+.ad .go { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; font-size: 12.5px; }
+
+.empty { text-align: center; padding: 60px 0; color: var(--muted); }
+.empty b { display: block; color: var(--ink); font-size: 18px; margin-bottom: 4px; }
+
+@media (max-width: 640px) {
+  .controls { gap: 12px 16px; }
+  input[type=range].rail { width: 100px; }
+  .grid { grid-template-columns: 1fr; }
+  .cline { height: 84px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div>
+      <div class="brand"><span class="roundel"></span>Flat hunt</div>
+      <div class="updated" id="updated">Loading…</div>
+    </div>
+    <button class="fetch" id="refresh">Fetch new listings</button>
+  </div>
+
+  <section class="hero">
+    <h1 class="headline" id="headline">&nbsp;</h1>
+    <p class="subline" id="subline">&nbsp;</p>
+    <div class="cline" id="cline" aria-label="Commute filter">
+      <div class="track"></div><div class="lit" id="lit"></div>
+      <div class="dots" id="dots"></div>
+      <div id="ticks"></div>
+      <div class="cut" id="cut"><span id="cutLabel"></span></div>
+      <input type="range" id="com" min="20" max="180" step="5" aria-label="Maximum commute in minutes">
+    </div>
+    <div class="cline-legend"><span><i></i>Dubai</span><span><i class="shj"></i>Sharjah</span><span class="hint">Drag along the line to set your maximum commute</span></div>
+  </section>
+
+  <div class="controls">
+    <div class="seg" id="city"><button data-v="All">All</button><button data-v="Dubai">Dubai</button><button data-v="Sharjah">Sharjah</button></div>
+    <label class="ctl">Rent up to <b id="rentV"></b><input class="rail" type="range" id="rent" min="25000" max="50000" step="1000"></label>
+    <label class="ctl">Walking up to <b id="walkV"></b><input class="rail" type="range" id="walk" min="5" max="40" step="1"></label>
+    <div class="ctl">Cheques
+      <div class="seg" id="chq"><button data-v="0">Any</button><button data-v="2">2+</button><button data-v="4">4+</button><button data-v="6">6+</button><button data-v="12">12</button></div>
+    </div>
+    <label class="ctl">Sort
+      <select id="sort">
+        <option value="true_cost">Cheapest all-in</option>
+        <option value="commute">Shortest commute</option>
+        <option value="walk">Least walking</option>
+        <option value="sqft">Largest</option>
+        <option value="listed">Newest ad</option>
+      </select></label>
+    <div class="areas-ctl">
+      <button class="areas-btn" id="areasBtn" aria-expanded="false" aria-controls="areaPanel">Areas<span id="areasCount"></span> ▾</button>
+    </div>
+    <label class="toggle"><input type="checkbox" id="studios"><span>Include studios listed as 1 bed (<span id="studioN">0</span>)</span></label>
+  </div>
+  <div class="area-panel" id="areaPanel" hidden>
+    <div class="area-head">
+      <input type="search" id="areaSearch" placeholder="Search areas" aria-label="Search areas">
+      <button class="linkish" id="areaClear">Clear</button>
+      <button class="linkish" id="areaDone">Done</button>
+    </div>
+    <div class="area-list" id="areaList"></div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div id="log"></div>
+
+  <main id="main"></main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = n => n == null ? "–" : n.toLocaleString("en-US");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const MAXC = 180, TICKS = [30, 45, 60, 90, 120, 150];
+let data = [];
+const F = { city: "All", rent: 50000, com: 180, walk: 40, sort: "true_cost", studios: false, chq: 0, areas: [] };
+try { Object.assign(F, JSON.parse(localStorage.getItem("flathunt") || "{}")); } catch (e) {}
+const save = () => { try { localStorage.setItem("flathunt", JSON.stringify(F)); } catch (e) {} };
+const goodSqft = s => s && s > 200 && s < 3000 ? s : null;
+const range = vals => { const v = vals.filter(x => x != null); if (!v.length) return null;
+  const lo = Math.min(...v), hi = Math.max(...v); return lo === hi ? fmt(lo) : `${fmt(lo)}–${fmt(hi)}`; };
+const pct = m => Math.min(m, MAXC) / MAXC * 100;
+
+function groupAds(rows) {
+  const by = new Map();
+  for (const r of rows) { const k = r.lat + "," + r.lon + "|" + r.building; (by.get(k) || by.set(k, []).get(k)).push(r); }
+  return [...by.values()].map(ads => {
+    ads.sort((a, b) => a.rent - b.rent);
+    return { ads, first: ads[0], c: ads[0].commute, minCost: ads[0].true_cost,
+             maxSqft: Math.max(0, ...ads.map(a => goodSqft(a.sqft) || 0)),
+             newest: Math.max(...ads.map(a => Date.parse(a.listed))) };
+  });
+}
+
+function render() {
+  // controls
+  document.querySelectorAll("#city button").forEach(b => b.classList.toggle("on", b.dataset.v === F.city));
+  document.querySelectorAll("#chq button").forEach(b => b.classList.toggle("on", +b.dataset.v === F.chq));
+  $("rent").value = F.rent; $("walk").value = F.walk; $("com").value = F.com; $("sort").value = F.sort;
+  $("studios").checked = F.studios; $("studioN").textContent = data.filter(r => r.studio).length;
+  $("rentV").textContent = "AED " + (F.rent / 1000) + "k";
+  $("walkV").textContent = F.walk >= 40 ? "any" : F.walk + " min";
+  save();
+
+  // everything except the commute cut -> dots on the commute line
+  const base = data.filter(r => (F.studios || !r.studio) && (F.city === "All" || r.city === F.city) &&
+    r.rent <= F.rent && (F.walk >= 40 || r.commute.walk_min <= F.walk) &&
+    (!F.chq || (r.cheques || 0) >= F.chq));
+  const all = groupAds(base);
+  const within = g => F.com >= MAXC || g.c.minutes <= F.com;
+  drawLine(all, within);
+
+  const groups = all.filter(within);
+  const key = { true_cost: g => g.minCost, commute: g => g.c.minutes, walk: g => g.c.walk_min,
+                sqft: g => -g.maxSqft, listed: g => -g.newest }[F.sort];
+  groups.sort((a, b) => key(a) - key(b) || a.minCost - b.minCost);
+
+  const ads = groups.reduce((n, g) => n + g.ads.length, 0);
+  const hour = all.filter(g => g.c.minutes <= 60).length;
+  $("headline").innerHTML = F.com >= MAXC
+    ? `<span class="n">${groups.length}</span> buildings, <em><span class="n">${hour}</span> within an hour</em> of Internet City`
+    : `<span class="n">${groups.length}</span> buildings <em>within <span class="n">${F.com}</span> min</em> of Internet City`;
+  const cheapest = groups.length ? Math.min(...groups.map(g => g.minCost)) : null;
+  $("subline").textContent = `${ads} ads · 1 bedroom · listed rent up to AED ${fmt(F.rent)}` +
+    (cheapest ? ` · cheapest all-in AED ${fmt(cheapest)}/yr` : "") + " · leaving 07:45 on a weekday";
+
+  // chosen areas first, then everything else (same sort inside each part)
+  const areaKey = g => g.first.city + "|" + g.first.area;
+  const picked = new Set(F.areas);
+  const mine = groups.filter(g => picked.has(areaKey(g))), rest = groups.filter(g => !picked.has(areaKey(g)));
+  const grid = gs => `<div class="grid">${gs.map(card).join("")}</div>`;
+  const head = (t, gs) => `<div class="section-head"><h2>${t}</h2><span>${gs.length} building${gs.length === 1 ? "" : "s"}</span></div>`;
+  if (!groups.length) {
+    $("main").innerHTML = `<div class="empty"><b>No buildings match.</b>Drag the commute line right, or raise the rent or walking limit.</div>`;
+  } else if (!picked.size) {
+    $("main").innerHTML = grid(groups);
+  } else {
+    $("main").innerHTML = head("Your areas", mine) +
+      (mine.length ? grid(mine) : `<div class="empty"><b>Nothing in your areas matches.</b>Loosen the filters above, or pick more areas.</div>`) +
+      (rest.length ? head("Other areas", rest) + grid(rest) : "");
+  }
+  renderAreas(groups);
+}
+
+function renderAreas(groups) {
+  // stats per area from what currently passes the filters
+  const st = {};
+  for (const g of groups) {
+    const k = g.first.city + "|" + g.first.area;
+    (st[k] = st[k] || []).push(g.c.minutes);
+  }
+  const allKeys = [...new Set(data.map(r => r.city + "|" + r.area))];
+  const q = $("areaSearch").value.trim().toLowerCase();
+  const rows = allKeys.filter(k => !q || k.toLowerCase().includes(q)).map(k => {
+    const m = (st[k] || []).sort((a, b) => a - b);
+    return { k, city: k.split("|")[0], name: k.split("|")[1] || "(unnamed)", n: m.length, med: m.length ? m[m.length >> 1] : null };
+  }).sort((a, b) => (b.n > 0) - (a.n > 0) || (a.med ?? 999) - (b.med ?? 999) || a.name.localeCompare(b.name));
+  $("areaList").innerHTML = ["Dubai", "Sharjah"].map(city => {
+    const rs = rows.filter(r => r.city === city);
+    return rs.length ? `<h4>${city}</h4>` + rs.map(r => `<label class="area-opt ${r.n ? "" : "none"}">
+        <input type="checkbox" data-k="${esc(r.k)}" ${F.areas.includes(r.k) ? "checked" : ""}>
+        <span class="nm">${esc(r.name)}</span>
+        <span class="st">${r.n ? `${r.n} · ~${r.med}′` : "0"}</span></label>`).join("") : "";
+  }).join("") || `<div class="empty">No area matches “${esc(q)}”.</div>`;
+  $("areaList").querySelectorAll("input").forEach(i => i.onchange = () => {
+    F.areas = i.checked ? [...F.areas, i.dataset.k] : F.areas.filter(k => k !== i.dataset.k);
+    render();
+  });
+  $("chips").innerHTML = F.areas.map(k => `<button class="chip" data-k="${esc(k)}" aria-label="Remove ${esc(k.split("|")[1])}">
+    ${esc(k.split("|")[1])}<span>×</span></button>`).join("");
+  $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => { F.areas = F.areas.filter(k => k !== b.dataset.k); render(); });
+  $("areasCount").textContent = F.areas.length ? ` · ${F.areas.length}` : "";
+  $("areasBtn").classList.toggle("active", F.areas.length > 0);
+}
+
+function drawLine(groups, within) {
+  // stack dots that share a ~9px-wide bin (so they never overlap, on any screen width)
+  const bins = {}, html = [], binPct = 900 / Math.max($("cline").clientWidth, 1);
+  for (const g of [...groups].sort((a, b) => a.c.minutes - b.c.minutes)) {
+    const b = Math.round(pct(g.c.minutes) / binPct), x = Math.min(b * binPct, 100), row = bins[b] = (bins[b] || 0) + 1;
+    if (row > 6) continue;
+    html.push(`<span class="dot ${g.first.city === "Sharjah" ? "shj" : ""} ${within(g) ? "" : "off"}"
+      style="left:${x}%;top:${48 - row * 8}px"></span>`);
+  }
+  $("dots").innerHTML = html.join("");
+  const cut = F.com >= MAXC ? 100 : pct(F.com);
+  $("ticks").innerHTML = TICKS.map(t => `<span class="tick ${t <= F.com ? "on" : ""}" style="left:${pct(t)}%"></span>
+    <span class="tlabel" style="left:${pct(t)}%">${t}′</span>`).join("");
+  $("lit").style.width = cut + "%";
+  $("cut").style.left = cut + "%";
+  $("cut").classList.toggle("flip", cut > 75);
+  $("cutLabel").textContent = F.com >= MAXC ? "any commute" : `≤ ${F.com} min`;
+}
+
+// "Walk → Bus F34 → Walk → Metro Red → Walk" -> diagram segments
+function segments(route) {
+  return route.replace(/^Google found no transit route · guess: /, "").split(" → ").map(p => {
+    if (/^Walk/.test(p)) return { k: "walk", label: "walk" };
+    if (/^Bus/.test(p)) return { k: "bus", label: p.replace(/^Bus\s*/, "") || "bus" };
+    if (/^Tram/.test(p)) return { k: "tram", label: "tram" };
+    if (/^Metro Red/.test(p)) return { k: "red", label: "red" };
+    if (/^Metro Green/.test(p)) return { k: "green", label: "green" };
+    const st = p.match(/\((.*)\)/);
+    return { k: "metro", label: st ? "metro" : p };
+  });
+}
+
+function diagram(c) {
+  const segs = segments(c.route);
+  let line = `<span class="stop home"></span>`, labels = `<span class="edge"></span>`;
+  segs.forEach((s, i) => {
+    line += `<span class="seg-l ${s.k}"></span>`;
+    labels += `<span class="${s.k}">${s.k === "walk" ? "" : esc(s.label)}</span>`;
+    const next = segs[i + 1];
+    if (next && s.k !== "walk" && next.k !== "walk") line += `<span class="stop"></span>`, labels += `<span class="edge"></span>`;
+  });
+  line += `<span class="stop dic"></span>`; labels += `<span class="end">DIC</span>`;
+  return `<div class="diagram" aria-hidden="true">${line}</div><div class="labels" aria-hidden="true">${labels}</div>`;
+}
+
+function card(g) {
+  const r = g.first, c = g.c, n = g.ads.length, est = c.source !== "google";
+  const sqft = range(g.ads.map(a => goodSqft(a.sqft)));
+  const tags = [
+    sqft && `<span class="tag">${sqft} sqft</span>`,
+    n > 1 && `<span class="tag">AED ${range(g.ads.map(a => a.rent))}</span>`,
+    range(g.ads.map(a => a.cheques || null)) && `<span class="tag">${range(g.ads.map(a => a.cheques || null))} cheque${g.ads.some(a => a.cheques > 1) ? "s" : ""}</span>`,
+    g.ads.some(a => a.chiller === "free") && `<span class="tag good">Chiller free</span>`,
+    g.ads.some(a => a.chiller === "mentioned") && `<span class="tag warn">Chiller: ask</span>`,
+    g.ads.some(a => a.furnished === "YES") && `<span class="tag">Furnished option</span>`,
+    g.ads.some(a => a.studio) && `<span class="tag warn">Studio listed as 1 bed</span>`,
+    g.ads.some(a => !a.studio && a.sqft >= 200 && a.sqft < 400) && `<span class="tag warn">Small: may be a studio</span>`,
+  ].filter(Boolean).join("");
+  const adRows = g.ads.map(a => `<a class="ad" href="${esc(a.url)}" target="_blank" rel="noopener">
+      <span class="r">AED ${fmt(a.rent)}<span>≈ ${fmt(a.true_cost)} all-in</span></span>
+      <span class="go">${g.ads.length > 1 ? "Open ↗" : "Open ad ↗"}</span>
+      <span class="meta">${[goodSqft(a.sqft) && fmt(a.sqft) + " sqft", a.cheques && a.cheques + (a.cheques > 1 ? " cheques" : " cheque"),
+        a.furnished === "YES" ? "furnished" : a.furnished === "PARTLY" ? "part-furnished" : null,
+        a.chiller === "free" ? "chiller free" : null, a.studio ? `<span class="st">studio</span>` : null,
+        "listed " + a.listed].filter(Boolean).join(" · ")}</span>
+    </a>`).join("");
+  return `<article class="card">
+    <div class="photo" style="background-image:url('${esc(r.image || "")}')">
+      <span class="city">${r.city}</span>
+      ${n > 1 ? `<span class="ads">${n} ads</span>` : ""}
+    </div>
+    <div class="body">
+      <div class="name">${esc(r.building)}<small>${esc(r.area)}</small></div>
+      <div class="money">
+        <span class="rent">${n > 1 ? `<span class="from">from</span>` : ""}${fmt(r.rent)}</span>
+        <span class="allin">all-in ≈ <b>AED ${fmt(r.true_cost)}</b>/yr</span>
+      </div>
+      <div class="route">
+        <div class="route-top">
+          <span class="mins ${c.minutes > 75 ? "slow" : ""}">${est ? "~" : ""}${c.minutes}<small>min to DIC</small></span>
+          <span class="walkline"><b>${est ? "~" : ""}${c.walk_min} min</b> walking</span>
+        </div>
+        ${diagram(c)}
+        ${est ? `<div class="approx">${c.route.startsWith("Google found") ? "Google found no transit route. This is a rough guess." : "Rough estimate, not from Google."}</div>` : ""}
+      </div>
+      ${tags ? `<div class="tags">${tags}</div>` : ""}
+      ${n > 1
+        ? `<details class="list"><summary>All ${n} ads in this building<span class="chev">▼</span></summary>${adRows}</details>`
+        : `<div class="list single">${adRows}</div>`}
+    </div>
+  </article>`;
+}
+
+async function load() {
+  const d = await (await fetch("/api/listings")).json();
+  data = d.listings;
+  $("updated").textContent = "Property Finder · updated " + d.updated.replace("T", " ");
+  render();
+}
+async function poll() {
+  const s = await (await fetch("/api/status")).json();
+  $("log").textContent = s.running ? s.log.slice(-2).join("\n") : "";
+  $("refresh").disabled = s.running;
+  $("refresh").textContent = s.running ? "Fetching… about 4 min" : "Fetch new listings";
+  if (s.running) setTimeout(poll, 2000); else if (s.log.length) load();
+}
+$("refresh").onclick = async () => { await fetch("/api/refresh", { method: "POST" }); poll(); };
+document.querySelectorAll("#city button").forEach(b => b.onclick = () => { F.city = b.dataset.v; render(); });
+document.querySelectorAll("#chq button").forEach(b => b.onclick = () => { F.chq = +b.dataset.v; render(); });
+["rent", "walk", "com"].forEach(id => $(id).oninput = e => { F[id] = +e.target.value; render(); });
+$("sort").onchange = e => { F.sort = e.target.value; render(); };
+$("studios").onchange = e => { F.studios = e.target.checked; render(); };
+addEventListener("resize", () => data.length && render());
+const togglePanel = open => { $("areaPanel").hidden = !open; $("areasBtn").setAttribute("aria-expanded", open); if (open) $("areaSearch").focus(); };
+$("areasBtn").onclick = () => togglePanel($("areaPanel").hidden);
+$("areaDone").onclick = () => togglePanel(false);
+$("areaClear").onclick = () => { F.areas = []; render(); };
+$("areaSearch").oninput = () => render();
+load(); poll();
+</script>
+</body>
+</html>

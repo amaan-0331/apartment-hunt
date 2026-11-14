@@ -1,0 +1,28 @@
+name: Refresh listings
+
+on:
+  workflow_dispatch:        # manual "Run workflow" button (testing)
+
+permissions:
+  contents: write           # to commit the refreshed data back
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Scrape Property Finder and compute commutes
+        env:
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        run: python hunt.py --refresh
+      - name: Commit refreshed data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add listings.json commute_cache.json
+          git diff --cached --quiet || git commit -m "Refresh listings"
+          git push
