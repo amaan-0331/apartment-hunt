@@ -223,6 +223,7 @@ details.list[open] summary .chev { transform: rotate(180deg); }
   </section>
 
   <div class="controls">
+    <div class="seg" id="type"><button data-v="1">1 bed</button><button data-v="studio">Studio</button><button data-v="both">Both</button></div>
     <div class="seg" id="city"><button data-v="All">All</button><button data-v="Dubai">Dubai</button><button data-v="Sharjah">Sharjah</button></div>
     <label class="ctl">Rent up to <b id="rentV"></b><input class="rail" type="range" id="rent" min="25000" max="50000" step="1000"></label>
     <label class="ctl">Walking up to <b id="walkV"></b><input class="rail" type="range" id="walk" min="5" max="40" step="1"></label>
@@ -240,7 +241,7 @@ details.list[open] summary .chev { transform: rotate(180deg); }
     <div class="areas-ctl">
       <button class="areas-btn" id="areasBtn" aria-expanded="false" aria-controls="areaPanel">Areas<span id="areasCount"></span> ▾</button>
     </div>
-    <label class="toggle"><input type="checkbox" id="studios"><span>Include studios listed as 1 bed (<span id="studioN">0</span>)</span></label>
+    <label class="toggle"><input type="checkbox" id="balcony"><span>Balcony only</span></label>
   </div>
   <div class="area-panel" id="areaPanel" hidden>
     <div class="area-head">
@@ -262,8 +263,9 @@ const fmt = n => n == null ? "–" : n.toLocaleString("en-US");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const MAXC = 180, TICKS = [30, 45, 60, 90, 120, 150];
 let data = [];
-const F = { city: "All", rent: 50000, com: 180, walk: 40, sort: "true_cost", studios: false, chq: 0, areas: [] };
+const F = { city: "All", rent: 50000, com: 180, walk: 40, sort: "true_cost", type: "1", balcony: false, chq: 0, areas: [] };
 try { Object.assign(F, JSON.parse(localStorage.getItem("flathunt") || "{}")); } catch (e) {}
+const isStudio = r => r.studio || r.mislabelled;   // real studio ads + "1 bed" ads that are really studios
 const save = () => { try { localStorage.setItem("flathunt", JSON.stringify(F)); } catch (e) {} };
 const goodSqft = s => s && s > 200 && s < 3000 ? s : null;
 const range = vals => { const v = vals.filter(x => x != null); if (!v.length) return null;
@@ -272,7 +274,7 @@ const pct = m => Math.min(m, MAXC) / MAXC * 100;
 
 function groupAds(rows) {
   const by = new Map();
-  for (const r of rows) { const k = r.lat + "," + r.lon + "|" + r.building; (by.get(k) || by.set(k, []).get(k)).push(r); }
+  for (const r of rows) { const k = r.lat + "," + r.lon + "|" + r.building + "|" + isStudio(r); (by.get(k) || by.set(k, []).get(k)).push(r); }
   return [...by.values()].map(ads => {
     ads.sort((a, b) => a.rent - b.rent);
     return { ads, first: ads[0], c: ads[0].commute, minCost: ads[0].true_cost,
@@ -286,13 +288,14 @@ function render() {
   document.querySelectorAll("#city button").forEach(b => b.classList.toggle("on", b.dataset.v === F.city));
   document.querySelectorAll("#chq button").forEach(b => b.classList.toggle("on", +b.dataset.v === F.chq));
   $("rent").value = F.rent; $("walk").value = F.walk; $("com").value = F.com; $("sort").value = F.sort;
-  $("studios").checked = F.studios; $("studioN").textContent = data.filter(r => r.studio).length;
+  $("balcony").checked = F.balcony;
+  document.querySelectorAll("#type button").forEach(b => b.classList.toggle("on", b.dataset.v === F.type));
   $("rentV").textContent = "AED " + (F.rent / 1000) + "k";
   $("walkV").textContent = F.walk >= 40 ? "any" : F.walk + " min";
   save();
 
   // everything except the commute cut -> dots on the commute line
-  const base = data.filter(r => (F.studios || !r.studio) && (F.city === "All" || r.city === F.city) &&
+  const base = data.filter(r => (!F.balcony || r.balcony) && (F.type === "both" || (F.type === "studio") === isStudio(r)) && (F.city === "All" || r.city === F.city) &&
     r.rent <= F.rent && (F.walk >= 40 || r.commute.walk_min <= F.walk) &&
     (!F.chq || (r.cheques || 0) >= F.chq));
   const all = groupAds(base);
@@ -310,7 +313,7 @@ function render() {
     ? `<span class="n">${groups.length}</span> buildings, <em><span class="n">${hour}</span> within an hour</em> of Internet City`
     : `<span class="n">${groups.length}</span> buildings <em>within <span class="n">${F.com}</span> min</em> of Internet City`;
   const cheapest = groups.length ? Math.min(...groups.map(g => g.minCost)) : null;
-  $("subline").textContent = `${ads} ads · 1 bedroom · listed rent up to AED ${fmt(F.rent)}` +
+  $("subline").textContent = `${ads} ads · ${{ "1": "1 bedroom", studio: "studios (Dubai, near work)", both: "1 bedroom + studios" }[F.type]} · listed rent up to AED ${fmt(F.rent)}` +
     (cheapest ? ` · cheapest all-in AED ${fmt(cheapest)}/yr` : "") + " · leaving 07:45 on a weekday";
 
   // chosen areas first, then everything else (same sort inside each part)
@@ -414,23 +417,24 @@ function card(g) {
     sqft && `<span class="tag">${sqft} sqft</span>`,
     n > 1 && `<span class="tag">AED ${range(g.ads.map(a => a.rent))}</span>`,
     range(g.ads.map(a => a.cheques || null)) && `<span class="tag">${range(g.ads.map(a => a.cheques || null))} cheque${g.ads.some(a => a.cheques > 1) ? "s" : ""}</span>`,
+    g.ads.some(a => a.balcony) && `<span class="tag good">Balcony</span>`,
     g.ads.some(a => a.chiller === "free") && `<span class="tag good">Chiller free</span>`,
     g.ads.some(a => a.chiller === "mentioned") && `<span class="tag warn">Chiller: ask</span>`,
     g.ads.some(a => a.furnished === "YES") && `<span class="tag">Furnished option</span>`,
-    g.ads.some(a => a.studio) && `<span class="tag warn">Studio listed as 1 bed</span>`,
-    g.ads.some(a => !a.studio && a.sqft >= 200 && a.sqft < 400) && `<span class="tag warn">Small: may be a studio</span>`,
+    g.ads.some(a => a.mislabelled) && `<span class="tag warn">Listed as 1 bed</span>`,
+    g.ads.some(a => !isStudio(a) && a.sqft >= 200 && a.sqft < 400) && `<span class="tag warn">Small: may be a studio</span>`,
   ].filter(Boolean).join("");
   const adRows = g.ads.map(a => `<a class="ad" href="${esc(a.url)}" target="_blank" rel="noopener">
       <span class="r">AED ${fmt(a.rent)}<span>≈ ${fmt(a.true_cost)} all-in</span></span>
       <span class="go">${g.ads.length > 1 ? "Open ↗" : "Open ad ↗"}</span>
       <span class="meta">${[goodSqft(a.sqft) && fmt(a.sqft) + " sqft", a.cheques && a.cheques + (a.cheques > 1 ? " cheques" : " cheque"),
         a.furnished === "YES" ? "furnished" : a.furnished === "PARTLY" ? "part-furnished" : null,
-        a.chiller === "free" ? "chiller free" : null, a.studio ? `<span class="st">studio</span>` : null,
+        a.chiller === "free" ? "chiller free" : null, a.balcony ? "balcony" : null, a.mislabelled ? `<span class="st">listed as 1 bed</span>` : null,
         "listed " + a.listed].filter(Boolean).join(" · ")}</span>
     </a>`).join("");
   return `<article class="card">
     <div class="photo" style="background-image:url('${esc(r.image || "")}')">
-      <span class="city">${r.city}</span>
+      <span class="city">${r.city}${isStudio(r) ? " · Studio" : ""}</span>
       ${n > 1 ? `<span class="ads">${n} ads</span>` : ""}
     </div>
     <div class="body">
@@ -488,7 +492,7 @@ async function poll() {
   try { s = await (await fetch("/api/status")).json(); } catch (e) { return; }
   $("log").textContent = s.running ? s.log.slice(-2).join("\n") : "";
   $("refresh").disabled = s.running;
-  $("refresh").textContent = s.running ? "Fetching… about 4 min" : "Fetch new listings";
+  $("refresh").textContent = s.running ? "Fetching… about 8 min" : "Fetch new listings";
   if (s.running) setTimeout(poll, 2000); else if (s.log.length) load();
 }
 $("refresh").onclick = async () => { await fetch("/api/refresh", { method: "POST" }); poll(); };
@@ -496,7 +500,8 @@ document.querySelectorAll("#city button").forEach(b => b.onclick = () => { F.cit
 document.querySelectorAll("#chq button").forEach(b => b.onclick = () => { F.chq = +b.dataset.v; render(); });
 ["rent", "walk", "com"].forEach(id => $(id).oninput = e => { F[id] = +e.target.value; render(); });
 $("sort").onchange = e => { F.sort = e.target.value; render(); };
-$("studios").onchange = e => { F.studios = e.target.checked; render(); };
+$("balcony").onchange = e => { F.balcony = e.target.checked; render(); };
+document.querySelectorAll("#type button").forEach(b => b.onclick = () => { F.type = b.dataset.v; render(); });
 addEventListener("resize", () => data.length && render());
 const togglePanel = open => { $("areaPanel").hidden = !open; $("areasBtn").setAttribute("aria-expanded", open); if (open) $("areaSearch").focus(); };
 $("areasBtn").onclick = () => togglePanel($("areaPanel").hidden);

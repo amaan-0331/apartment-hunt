@@ -1,4 +1,4 @@
-"""Builds listings.json: Property Finder 1BHK yearly rentals (Dubai + Sharjah),
+"""Builds listings.json: Property Finder 1BHK yearly rentals (Dubai + Sharjah) plus Dubai studios near work,
 with true yearly cost and commute to Dubai Internet City.
 
 Used by app.py (the dashboard). Can also be run directly:  python3 hunt.py [--refresh]
@@ -12,6 +12,14 @@ MAX_RENT = 50000       # listed rent (true cost may be higher)
 MAX_PAGES = {"Dubai": 40, "Sharjah": 4}   # ~25 listings/page; Dubai = all pages (~21)
 DELAY = (6, 10)        # seconds between Property Finder requests
 CITIES = {"Dubai": 1, "Sharjah": 4}   # Property Finder location ids
+STUDIO_MAX_RENT = 45000
+STUDIO_AREAS = {       # Dubai studios: only areas roughly within an hour of DIC (Property Finder ids)
+    "Jumeirah Lake Towers": 71, "Dubai Marina": 50, "Al Barsha": 13, "Barsha Heights (Tecom)": 91,
+    "Greens": 60, "Dubai Sports City": 55, "Al Furjan": 14, "Jumeirah Village Circle": 73,
+    "Jumeirah Village Triangle": 74, "Motor City": 80, "Discovery Gardens": 40,
+    "Dubai Production City (IMPZ)": 62, "Arjan": 126,
+}
+STUDIO_MAX_PAGES = 15  # per area
 OFFICE = (25.1022, 55.1739)           # Dubai Internet City metro station
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
@@ -27,12 +35,12 @@ def km(a, b):
 
 
 # ---- Property Finder ----------------------------------------------------
-def fetch_page(city_id, page, refresh):
-    cache = path("cache", f"pf_{city_id}_{page}.json")
+def fetch_page(loc_id, page, refresh, studio=False):
+    cache = path("cache", f"pf_{'s' if studio else ''}{loc_id}_{page}.json")
     if os.path.exists(cache) and not refresh:
         return json.load(open(cache)), False
-    url = (f"https://www.propertyfinder.ae/en/search?c=2&bdr%5B%5D=1&rp=y"
-           f"&l={city_id}&pt={MAX_RENT}&page={page}")
+    url = (f"https://www.propertyfinder.ae/en/search?c=2&bdr%5B%5D={0 if studio else 1}&rp=y"
+           f"&l={loc_id}&pt={STUDIO_MAX_RENT if studio else MAX_RENT}&page={page}")
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "en-US,en;q=0.9"})
     html = urllib.request.urlopen(req, timeout=30).read().decode("utf-8")
     m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.S)
@@ -51,6 +59,14 @@ def chiller(desc):
     if "chiller" in d:
         return "mentioned"
     return ""
+
+
+def balcony(p):
+    """True when the agent ticked 'Balcony' or the ad text mentions one (but not 'no balcony')."""
+    text = (p.get("title") or "") + " " + (p.get("description") or "")
+    if re.search(r"\b(no|without)\s+balcon", text, re.I):
+        return False
+    return "BA" in (p.get("amenities") or []) or bool(re.search(r"balcon", text, re.I))
 
 
 STUDIO_TITLE = re.compile(r"\bstudio\b(?!\s*city)", re.I)
@@ -183,10 +199,14 @@ def google_commute(lat, lon, key, depart):
 # ---- build --------------------------------------------------------------
 def build(refresh=False, log=print):
     rows, seen_ids = [], set()
-    for city, cid in CITIES.items():
-        for page in range(1, MAX_PAGES[city] + 1):
-            data, fetched = fetch_page(cid, page, refresh)
-            log(f"{city} page {page}: {len(data['listings'])} items{' (downloaded)' if fetched else ' (cached)'}")
+    searches = [(city, cid, False, MAX_PAGES[city]) for city, cid in CITIES.items()]
+    searches += [("Dubai", aid, True, STUDIO_MAX_PAGES) for aid in STUDIO_AREAS.values()]
+    names = {v: k for k, v in STUDIO_AREAS.items()}
+    for city, cid, studios, max_pages in searches:
+        label = f"Studios {names[cid]}" if studios else f"{city} 1 bed"
+        for page in range(1, max_pages + 1):
+            data, fetched = fetch_page(cid, page, refresh, studios)
+            log(f"{label} page {page}: {len(data['listings'])} items{' (downloaded)' if fetched else ' (cached)'}")
             for item in data["listings"]:
                 if item.get("listing_type") != "property":
                     continue
@@ -194,7 +214,9 @@ def build(refresh=False, log=print):
                 if p["id"] in seen_ids:     # promoted ads repeat across pages
                     continue
                 seen_ids.add(p["id"])
-                if p["price"]["period"] != "yearly" or p["bedrooms"] != "1" or p["price"]["value"] > MAX_RENT:
+                beds, rent = p["bedrooms"], p["price"]["value"]
+                if p["price"]["period"] != "yearly" or beds not in ("1", "studio") \
+                        or rent > (STUDIO_MAX_RENT if beds == "studio" else MAX_RENT):
                     continue
                 loc, rent = p["location"], p["price"]["value"]
                 tree = [t["name"] for t in p["location_tree"]]
@@ -208,7 +230,9 @@ def build(refresh=False, log=print):
                     "cheques": p.get("number_of_cheques"),
                     "furnished": p.get("furnished", ""),
                     "chiller": chiller(p.get("description", "")),
-                    "studio": is_studio(p.get("title"), p.get("description")),
+                    "balcony": balcony(p),
+                    "studio": beds == "studio",            # a real studio listing
+                    "mislabelled": beds == "1" and is_studio(p.get("title"), p.get("description")),  # "1 bed" ad that is really a studio
                     "title": p.get("title", ""),
                     "image": (p.get("images") or [{}])[0].get("medium"),
                     "listed": p["listed_date"][:10],
