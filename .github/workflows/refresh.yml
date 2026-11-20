@@ -1,12 +1,12 @@
 name: Refresh listings
 
 on:
-  schedule:
-    - cron: "0 8 * * *"     # 08:00 UTC = 12:00 Dubai, every day (GitHub may start it a little late)
-  workflow_dispatch:        # "Run workflow" button for a manual update
-  push:                     # redeploy the site when the dashboard code changes (no scraping)
+  # No daily schedule here: Property Finder blocks GitHub's servers, so the daily scrape
+  # runs on the Mac (local-refresh.sh, installed by install-daily-refresh.sh) and pushes listings.json.
+  workflow_dispatch:        # "Run workflow" button: try a scrape from GitHub anyway
+  push:                     # redeploy the site when the data or dashboard changes (no scraping)
     branches: [main]
-    paths: [dashboard.html, .github/workflows/refresh.yml]
+    paths: [listings.json, dashboard.html, .github/workflows/refresh.yml]
 
 permissions:
   contents: write           # commit refreshed data back
